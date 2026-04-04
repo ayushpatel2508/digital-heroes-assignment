@@ -162,7 +162,7 @@ const Landing = () => {
               { value: '£840k', label: 'Raised for Charity', icon: Heart },
               { value: '£25k', label: 'Monthly Prize Pool', icon: Trophy },
               { value: '100%', label: 'Verified Winners', icon: ShieldCheck },
-            ].map((stat, i) => (
+            ].map((stat) => (
               <div
                 key={stat.label}
                 className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-5 text-center backdrop-blur-sm"

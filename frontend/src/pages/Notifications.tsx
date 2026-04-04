@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
-import { Bell, Trophy, Calendar, Users, Award, TrendingUp } from 'lucide-react';
+import { Bell, Trophy, Calendar, Users, Award } from 'lucide-react';
 import apiClient from '../api/apiClient';
 
 interface DrawResult {
@@ -18,7 +17,6 @@ interface DrawResult {
 }
 
 const Notifications = () => {
-  const { user } = useAuth();
   const [draws, setDraws] = useState<DrawResult[]>([]);
   const [loading, setLoading] = useState(true);
 

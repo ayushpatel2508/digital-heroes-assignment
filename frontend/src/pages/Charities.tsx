@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { charityApi } from '../api/charityApi';
 import type { Charity, UserCharity } from '../api/charityApi';
-import { Heart, ExternalLink, Star, CheckCircle2, Search, Sparkles, Globe, ChevronRight } from 'lucide-react';
+import { Heart, Star, CheckCircle2, Search, Sparkles, Globe, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CharitySelectionModal from '../components/CharitySelectionModal';
 

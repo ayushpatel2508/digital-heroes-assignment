@@ -5,14 +5,7 @@ import {
   CreditCard, 
   Heart, 
   Trophy, 
-  BarChart3, 
-  Activity,
   ArrowUpRight,
-  TrendingUp,
-  Zap,
-  Globe,
-  ShieldCheck,
-  LogOut,
   Bell
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -22,7 +15,7 @@ import { PrizePoolsDisplay } from '../../components/PrizePoolsDisplay';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { user: currentUser, signOut } = useAuth();
+  const { user: currentUser } = useAuth();
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeSubscribers: 0,
@@ -80,12 +73,6 @@ const AdminDashboard = () => {
     { label: 'Available Pool', value: `£${(stats.availablePrizePool || 0).toLocaleString()}`, color: 'emerald', desc: 'Ready to distribute' },
     { label: 'Reserved (Approved)', value: `£${(stats.reservedPrizePool || 0).toLocaleString()}`, color: 'emerald', desc: 'Awaiting payout' },
     { label: 'Total Paid Out', value: `£${(stats.totalWinningsPaid || 0).toLocaleString()}`, color: 'blue', desc: 'Completed payouts' },
-  ];
-
-  const winnerCountCards = [
-    { label: '5-Match Winners', value: stats.fiveMatchWinners || 0, color: 'purple', desc: 'Jackpot winners' },
-    { label: '4-Match Winners', value: stats.fourMatchWinners || 0, color: 'blue', desc: 'Mid-tier winners' },
-    { label: '3-Match Winners', value: stats.threeMatchWinners || 0, color: 'emerald', desc: 'Entry-level winners' },
   ];
 
   return (

@@ -7,7 +7,6 @@ import {
   Search,
   X,
   ExternalLink,
-  AlertCircle,
   DollarSign,
 } from 'lucide-react';
 import apiClient from '../../api/apiClient';
