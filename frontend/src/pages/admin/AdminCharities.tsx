@@ -1,4 +1,4 @@
-cimport { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, Heart, X, PlusCircle, Sparkles, Globe, ArrowRight } from 'lucide-react';
 import apiClient from '../../api/apiClient';
