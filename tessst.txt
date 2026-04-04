@@ -1,0 +1,112 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.charities (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  description text,
+  logo_url text,
+  website_url text,
+  is_featured boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT charities_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.monthly_draws (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  draw_month date NOT NULL UNIQUE,
+  winning_numbers ARRAY NOT NULL,
+  draw_type text NOT NULL CHECK (draw_type = ANY (ARRAY['random'::text, 'algorithmic'::text])),
+  status text NOT NULL DEFAULT 'draft'::text CHECK (status = ANY (ARRAY['draft'::text, 'simulated'::text, 'published'::text])),
+  published_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT monthly_draws_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.payment_transactions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  stripe_payment_intent_id text,
+  amount numeric NOT NULL,
+  charity_id uuid,
+  charity_amount numeric,
+  prize_pool_contribution numeric,
+  platform_fee numeric,
+  billing_period_start date,
+  billing_period_end date,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT payment_transactions_pkey PRIMARY KEY (id),
+  CONSTRAINT payment_transactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT payment_transactions_charity_id_fkey FOREIGN KEY (charity_id) REFERENCES public.charities(id)
+);
+CREATE TABLE public.prize_pools (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  draw_month date NOT NULL UNIQUE,
+  total_pool numeric NOT NULL DEFAULT 0,
+  pool_5_match numeric NOT NULL DEFAULT 0,
+  pool_4_match numeric NOT NULL DEFAULT 0,
+  pool_3_match numeric NOT NULL DEFAULT 0,
+  rollover_from_previous numeric NOT NULL DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT prize_pools_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.profiles (
+  id uuid NOT NULL,
+  full_name text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  is_admin boolean DEFAULT false,
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.scores (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  score_value integer NOT NULL CHECK (score_value >= 1 AND score_value <= 45),
+  score_date date NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT scores_pkey PRIMARY KEY (id),
+  CONSTRAINT scores_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.subscriptions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  stripe_subscription_id text UNIQUE,
+  stripe_customer_id text,
+  plan_type text NOT NULL CHECK (plan_type = ANY (ARRAY['monthly'::text, 'yearly'::text])),
+  status text NOT NULL CHECK (status = ANY (ARRAY['active'::text, 'canceled'::text, 'past_due'::text, 'incomplete'::text])),
+  current_period_start timestamp with time zone NOT NULL,
+  current_period_end timestamp with time zone NOT NULL,
+  cancel_at_period_end boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT subscriptions_pkey PRIMARY KEY (id),
+  CONSTRAINT subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.user_charities (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  charity_id uuid NOT NULL,
+  donation_percentage numeric NOT NULL DEFAULT 10.00 CHECK (donation_percentage >= 10::numeric),
+  effective_from timestamp with time zone NOT NULL DEFAULT now(),
+  effective_to timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_charities_pkey PRIMARY KEY (id),
+  CONSTRAINT user_charities_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT user_charities_charity_id_fkey FOREIGN KEY (charity_id) REFERENCES public.charities(id)
+);
+CREATE TABLE public.winners (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  draw_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  match_type text NOT NULL CHECK (match_type = ANY (ARRAY['3-match'::text, '4-match'::text, '5-match'::text])),
+  prize_amount numeric NOT NULL,
+  verification_status text NOT NULL DEFAULT 'pending'::text CHECK (verification_status = ANY (ARRAY['pending'::text, 'approved'::text, 'rejected'::text])),
+  proof_screenshot_url text,
+  payment_status text NOT NULL DEFAULT 'pending'::text CHECK (payment_status = ANY (ARRAY['pending'::text, 'paid'::text])),
+  admin_notes text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT winners_pkey PRIMARY KEY (id),
+  CONSTRAINT winners_draw_id_fkey FOREIGN KEY (draw_id) REFERENCES public.monthly_draws(id),
+  CONSTRAINT winners_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
