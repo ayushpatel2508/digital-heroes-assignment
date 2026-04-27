@@ -1,4 +1,4 @@
-# Digital Heroes - Golf for Good
+# Play for Good
 
 A comprehensive charity-driven golf platform that combines score tracking, monthly prize draws, and automated charity donations. Players submit their Stableford scores, enter monthly draws to win prizes, and contribute to their chosen charities—all in one seamless experience.
 
