@@ -1,4 +1,4 @@
-# Digital Heroes - Golf for Good
+# Play for Good
 
 A comprehensive charity-driven golf platform that combines score tracking, monthly prize draws, and automated charity donations. Players submit their Stableford scores, enter monthly draws to win prizes, and contribute to their chosen charities—all in one seamless experience.
 
@@ -244,39 +244,3 @@ ngrok http 3000
 3. Admin reviews and verifies proof
 4. Admin marks as paid after transfer
 5. Amount moves from reserved to paid pool
-
-## Deployment
-
-### Frontend (Vercel/Netlify)
-1. Build the frontend: `npm run build`
-2. Deploy `dist/` folder
-3. Set environment variables in platform dashboard
-
-### Backend (Render/Railway/Heroku)
-1. Push code to GitHub
-2. Connect repository to hosting platform
-3. Set environment variables
-4. Update Stripe webhook URL to production domain
-
-### Database (Supabase)
-- Already hosted, just ensure production environment variables are set
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License.
-
-## Support
-
-For support, email support@digitalheroes.com or open an issue in the repository.
-
----
-
-**Built with ❤️ for golfers who want to make a difference**
