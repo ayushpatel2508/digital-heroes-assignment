@@ -17,11 +17,12 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: true,
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-stripe-signature', 'x-user-id']
 }));
+
 
 // Webhook endpoint MUST be defined BEFORE express.json() to get the raw body
 app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), stripeController.handleWebhook);
@@ -52,7 +53,8 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
-app.listen(PORT, () => {
-  console.log(`⛳ Backend server running at http://localhost:${PORT}`);
+app.listen(Number(PORT), '0.0.0.0', () => {
+  const host = process.env.BACKEND_URL || `http://localhost:${PORT}`;
+  console.log(`⛳ Backend server running at ${host}`);
   console.log(`📦 Mode: ${process.env.NODE_ENV || 'development'}`);
 });

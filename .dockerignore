@@ -1,0 +1,45 @@
+# Root level .dockerignore
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!README.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+
+# Node modules (handled by individual Dockerfiles)
+**/node_modules/
+**/dist/
+**/build/
+
+# Environment files (should be passed at runtime)
+**/.env
+**/.env.*
+
+# Skills folder
+skills/
