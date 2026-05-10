@@ -59,7 +59,6 @@ export const PrizePoolsDisplay = () => {
     new Date(dateStr).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 
   const currentDate = new Date();
-  const currentMonthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-01`;
   
   // Generate the rolling 12 months (Current month + 11 future months)
   const rollingMonths = Array.from({ length: 12 }).map((_, i) => {
