@@ -223,24 +223,3 @@ ngrok http 3000
 | GET | /admin/users | Get all users | Admin |
 | PUT | /admin/users/:id | Update user | Admin |
 | GET | /admin/draws | Get all draws | Admin |
-
-## Key Features Explained
-
-### Draw System
-- **Random Algorithm**: Equal probability for all eligible participants
-- **Weighted Algorithm**: Higher scores get better odds
-- **Match Types**: 5-match (40% pool), 4-match (30% pool), 3-match (20% pool)
-- **Eligibility**: Must have 5 valid scores submitted for the month
-
-### Prize Pool Distribution
-- **Total Pool**: Sum of all subscription contributions
-- **Reserved Pool**: Allocated to approved winners awaiting payout
-- **Available Pool**: Ready for next draw distribution
-- **Charity Allocation**: Minimum 10% of each subscription goes to user's chosen charity
-
-### Winner Verification Flow
-1. User wins in monthly draw
-2. User uploads proof document (bank statement, ID, etc.)
-3. Admin reviews and verifies proof
-4. Admin marks as paid after transfer
-5. Amount moves from reserved to paid pool
