@@ -58,15 +58,61 @@ button {
 }
 
 input, textarea, select {
-  color: white;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  font: inherit;
 }
 
-/* Fix date picker dark mode */
-input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1) opacity(0.4);
-  cursor: pointer;
+/* Explicit button presets to avoid style loss from global button reset */
+.btn-pill-black {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  background: #020617;
+  color: #ffffff;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 1px 2px rgba(2, 6, 23, 0.15);
+  transition: transform 180ms ease, background-color 180ms ease;
+}
+
+.btn-pill-black:hover {
+  background: #1e293b;
+  transform: scale(1.05);
+}
+
+.btn-pill-black:active {
+  transform: scale(0.98);
+}
+
+.btn-pill-black:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-pill-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: transform 180ms ease, background-color 180ms ease;
+}
+
+.btn-pill-ghost:hover {
+  background: #f8fafc;
+  transform: scale(1.05);
 }
 
 /* ── Glassmorphism panel ─────────── */
@@ -106,4 +152,3 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
-

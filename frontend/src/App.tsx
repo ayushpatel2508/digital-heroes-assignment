@@ -33,7 +33,7 @@ const GlobalLoader = () => (
 const UserRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading, isAdmin } = useAuth();
   if (loading) return <GlobalLoader />;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/" replace />;
   if (isAdmin) return <Navigate to="/admin/dashboard" replace />;
   return <UserLayout>{children}</UserLayout>;
 };
@@ -42,7 +42,7 @@ const UserRoute = ({ children }: { children: React.ReactNode }) => {
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading, isAdmin } = useAuth();
   if (loading) return <GlobalLoader />;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/" replace />;
   if (!isAdmin) return <Navigate to="/dashboard" replace />;
   return <AdminPortalLayout>{children}</AdminPortalLayout>;
 };
@@ -55,13 +55,20 @@ const PublicOnlyRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const HomeRoute = () => {
+  const { user, loading, isAdmin } = useAuth();
+  if (loading) return <GlobalLoader />;
+  if (user) return <Navigate to={isAdmin ? '/admin/dashboard' : '/dashboard'} replace />;
+  return <Landing />;
+};
+
 function App() {
   return (
     <Router>
       <AuthProvider>
         <Routes>
           {/* ── Public Routes ── */}
-          <Route path="/" element={<Landing />} />
+          <Route path="/" element={<HomeRoute />} />
           <Route path="/charities-explorer" element={<Charities />} />
           <Route
             path="/login"

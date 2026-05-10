@@ -13,21 +13,21 @@
   "description": "",
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
     "@types/multer": "^2.1.0",
+    "@types/node": "^22.0.0",
     "axios": "^1.14.0",
     "base64-arraybuffer": "^1.0.2",
     "cors": "^2.8.6",
     "dotenv": "^17.4.0",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.5.1",
     "multer": "^2.1.1",
-    "stripe": "^22.0.0",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/node": "^22.0.0",
     "nodemon": "^3.1.14",
+    "stripe": "^22.0.0",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.3.3"
   }
 }
-

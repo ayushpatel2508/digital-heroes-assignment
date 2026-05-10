@@ -1,210 +1,191 @@
-import { useState, useEffect } from 'react';
-import { 
-  Calendar, 
-  Zap, 
-  AlertCircle, 
-  CheckCircle2, 
-  Loader2, 
-  Terminal,
-  ArrowRight,
-  TrendingUp,
-  ShieldAlert
-} from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { AlertCircle, Calendar, CheckCircle2, Play, Shuffle, Sparkles, Terminal, Zap } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import { useAuth } from '../../context/AuthContext';
+import { PrizePoolsDisplay } from '../../components/PrizePoolsDisplay';
+
+interface DrawLog {
+  id: string;
+  draw_month: string;
+  status: string;
+  winning_numbers?: number[];
+  draw_type?: string;
+}
+
+const algorithmOptions = [
+  {
+    id: 'random',
+    mode: 'random' as const,
+    title: 'Random Draw',
+    subtitle: 'Equal chance',
+    description: 'Every eligible user with a complete Rolling 5 has the same chance.',
+    icon: Shuffle,
+  },
+  {
+    id: 'weighted-frequency',
+    mode: 'algorithmic' as const,
+    title: 'Score Frequency Weighted',
+    subtitle: 'Score weighted',
+    description: 'Submitted score frequency influences the winning number pool.',
+    icon: Zap,
+  },
+  {
+    id: 'balanced-performance',
+    mode: 'algorithmic' as const,
+    title: 'Balanced Performance',
+    subtitle: 'Activity aware',
+    description: 'Uses the algorithmic engine for a performance-aware draw run.',
+    icon: Sparkles,
+  },
+];
 
 const AdminDraws = () => {
   const { user: currentUser } = useAuth();
   const [month, setMonth] = useState(new Date().toISOString().split('T')[0].substring(0, 7) + '-01');
-  const [type, setType] = useState<'random' | 'algorithmic'>('random');
+  const [algorithmId, setAlgorithmId] = useState(algorithmOptions[0].id);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [pastDraws, setPastDraws] = useState<any[]>([]);
+  const [pastDraws, setPastDraws] = useState<DrawLog[]>([]);
+  const selectedAlgorithm = algorithmOptions.find((option) => option.id === algorithmId) || algorithmOptions[0];
 
-  useEffect(() => {
-    if (currentUser) {
-      fetchPastDraws();
+  const fetchPastDraws = useCallback(async () => {
+    if (!currentUser) return;
+    try {
+      const response = await apiClient.get('/admin/draws', { headers: { 'x-user-id': currentUser?.id } });
+      setPastDraws(Array.isArray(response.data) ? response.data : []);
+    } catch (error: unknown) {
+      console.error('Failed to fetch admin draws:', error);
+      const apiError = error as { response?: { data?: { error?: string } } };
+      setMessage({ type: 'error', text: apiError.response?.data?.error || 'Failed to fetch draw logs from backend.' });
     }
   }, [currentUser]);
 
-  const fetchPastDraws = async () => {
-    try {
-      const response = await apiClient.get('/admin/draws', {
-        headers: { 'x-user-id': currentUser?.id }
-      });
-      setPastDraws(response.data || []);
-    } catch (error) {
-      console.error('Error fetching past draws:', error);
-    }
-  };
+  useEffect(() => {
+    fetchPastDraws();
+  }, [fetchPastDraws]);
 
   const handleRunDraw = async () => {
     if (!currentUser) return;
-    
-    // Validate date is not in the past
-    const selectedDate = new Date(month);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    if (selectedDate < today) {
-      setMessage({ type: 'error', text: 'Please select a valid date. Cannot execute draws for past months.' });
-      return;
-    }
-    
-    if (!confirm('PROTOCOL INITIATION: Are you sure you want to execute the prize distribution?')) return;
-    
+    if (!confirm(`Run ${selectedAlgorithm.title} for ${month}?`)) return;
+
     setLoading(true);
     setMessage(null);
     try {
       const adminHeaders = { 'x-user-id': currentUser.id };
-      const genRes = await apiClient.post('/draws/generate', { month, type }, { headers: adminHeaders });
+      const genRes = await apiClient.post('/draws/generate', { month, type: selectedAlgorithm.mode }, { headers: adminHeaders });
       const pubRes = await apiClient.post(`/draws/${genRes.data.draw.id}/publish`, { month }, { headers: adminHeaders });
-
-      setMessage({ 
-        type: 'success', 
-        text: `PRIZE PROTOCOL COMPLETE: Found ${pubRes.data.results.winnersCount} winners.` 
-      });
+      setMessage({ type: 'success', text: `${selectedAlgorithm.title} complete. Found ${pubRes.data.results.winnersCount} winners.` });
       fetchPastDraws();
-    } catch (error: any) {
-      setMessage({ type: 'error', text: error.response?.data?.error || error.message });
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { error?: string } }; message?: string };
+      setMessage({ type: 'error', text: apiError.response?.data?.error || apiError.message || 'Failed to run draw.' });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-12 pb-20">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <Zap size={14} className="text-emerald-500" fill="currentColor" />
-            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Draw Protocol 734-X</span>
-          </div>
-          <h1 className="text-4xl font-black text-white tracking-tight heading-fancy">
-            Distribution <span className="text-emerald-500">Engine</span>
-          </h1>
-          <p className="text-slate-400 mt-1 font-medium">Verify system parameters and execute prize pool allocation.</p>
-        </div>
+    <div className="space-y-8">
+      <div>
+        <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-amber-500">Admin Panel</p>
+        <h1 className="mt-2 text-3xl font-extrabold tracking-tight">Draw Engine</h1>
+        <p className="mt-2 text-sm text-slate-500">Select the draw month, choose the algorithm, and publish the prize distribution.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-10">
-        {/* Draw Configuration */}
-        <section className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[3rem] p-10 shadow-2xl relative overflow-hidden group">
-          <div className="relative z-10">
-            <div className="flex items-center gap-4 mb-10">
-              <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-400">
-                <ShieldAlert size={28} />
-              </div>
-              <h2 className="text-2xl font-black text-white heading-fancy">Initiate Distribution</h2>
+      <section className="grid gap-5 lg:grid-cols-[1fr_0.8fr]">
+        <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-[#172449] text-white">
+              <Calendar size={18} />
             </div>
+            <div>
+              <h2 className="font-extrabold">Draw configuration</h2>
+              <p className="text-xs text-slate-500">This creates and publishes the draw in one action.</p>
+            </div>
+          </div>
 
-            <div className="space-y-8">
-              <div>
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-2">Temporal Targeting</label>
-                <div className="relative">
-                  <div className="absolute left-6 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <Calendar className="text-slate-400" size={20} />
-                  </div>
-                  <input
-                    type="date"
-                    value={month}
-                    onChange={e => setMonth(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl pl-16 pr-8 py-5 text-lg font-black text-white focus:outline-none focus:border-emerald-500/50 transition-colors"
-                  />
-                </div>
-              </div>
+          <label className="block">
+            <span className="mb-2 block text-xs font-extrabold uppercase tracking-wide text-slate-400">Draw month</span>
+            <input
+              type="date"
+              value={month}
+              onChange={(event) => setMonth(event.target.value)}
+              className="w-full rounded-md border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-950 outline-none focus:border-slate-950"
+            />
+          </label>
 
-              <div>
-                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-2">Algorithm Selector</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button onClick={() => setType('random')} className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col items-center gap-4 ${type === 'random' ? 'bg-emerald-500 border-emerald-500 text-slate-950' : 'bg-white/5 border-white/10 text-slate-400'}`}>
-                    <TrendingUp size={28} />
-                    <span className="font-black text-[10px] uppercase tracking-widest">Random</span>
+          <div className="mt-6">
+            <p className="mb-3 text-xs font-extrabold uppercase tracking-wide text-slate-400">Algorithm selector</p>
+            <div className="grid gap-3 md:grid-cols-3">
+              {algorithmOptions.map((option) => {
+                const Icon = option.icon;
+                const selected = option.id === algorithmId;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setAlgorithmId(option.id)}
+                    className={`rounded-lg border p-4 text-left transition ${
+                      selected ? 'border-[#172449] bg-[#172449] text-white' : 'border-slate-200 bg-white text-slate-900 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Icon size={18} className={selected ? 'text-amber-300' : 'text-slate-400'} />
+                    <p className="mt-4 text-sm font-extrabold">{option.title}</p>
+                    <p className={`mt-1 text-[10px] font-bold uppercase tracking-wide ${selected ? 'text-white/60' : 'text-slate-400'}`}>{option.subtitle}</p>
+                    <p className={`mt-3 text-xs leading-5 ${selected ? 'text-white/70' : 'text-slate-500'}`}>{option.description}</p>
                   </button>
-                  <button onClick={() => setType('algorithmic')} className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col items-center gap-4 ${type === 'algorithmic' ? 'bg-emerald-500 border-emerald-500 text-slate-950' : 'bg-white/5 border-white/10 text-slate-400'}`}>
-                    <Zap size={28} />
-                    <span className="font-black text-[10px] uppercase tracking-widest">Weighted</span>
-                  </button>
-                </div>
-                
-                {/* Algorithm Explanation */}
-                <div className="mt-6 p-4 bg-slate-900/50 border border-white/5 rounded-xl">
-                  {type === 'random' ? (
-                    <p className="text-sm text-slate-400 leading-relaxed">
-                      <span className="text-emerald-400 font-bold">Random Selection:</span> All eligible participants have an equal chance of winning. The system randomly selects winners from users who have submitted 5 valid scores for the month.
-                    </p>
-                  ) : (
-                    <p className="text-sm text-slate-400 leading-relaxed">
-                      <span className="text-emerald-400 font-bold">Weighted Algorithm:</span> Winners are selected based on performance metrics. Users with higher scores and better consistency have increased probability of selection, rewarding active and high-performing participants.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <button
-                onClick={handleRunDraw}
-                disabled={loading}
-                className="w-full h-20 bg-white text-slate-950 rounded-[2rem] font-black text-xl hover:bg-emerald-500 transition-all flex items-center justify-center gap-4 group/btn"
-              >
-                {loading ? <Loader2 className="animate-spin" /> : <>FIRE PROTOCOL <ArrowRight /></>}
-              </button>
+                );
+              })}
             </div>
           </div>
-        </section>
 
-        {/* Global Message */}
-        {message && (
-          <div>
-            <div className={`p-6 rounded-[2rem] border flex items-center gap-4 ${message.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
-              <div className="flex-shrink-0">
-                {message.type === 'success' ? <CheckCircle2 size={24} /> : <AlertCircle size={24} />}
-              </div>
-              <p className="font-bold">{message.text}</p>
+          <button
+            onClick={handleRunDraw}
+            disabled={loading}
+            className="mt-6 w-full rounded-md bg-amber-400 py-4 text-sm font-extrabold text-slate-950 disabled:opacity-60"
+          >
+            <Play size={16} /> {loading ? 'Running draw...' : 'Run and publish draw'}
+          </button>
+
+          {message && (
+            <div className={`mt-4 flex items-center gap-2 rounded-md p-4 text-sm font-bold ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+              {message.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+              {message.text}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Action Logs */}
-        <section className="bg-slate-950 border border-white/5 rounded-[3rem] p-10 shadow-2xl">
-          <div className="flex items-center gap-4 mb-8">
-            <div className="p-3 bg-white/5 rounded-2xl text-slate-400 border border-white/5">
-              <Terminal size={24} />
-            </div>
-            <h2 className="text-2xl font-black text-white heading-fancy">Protocol Logs</h2>
+        <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-5 flex items-center gap-3">
+            <Terminal size={18} className="text-slate-400" />
+            <h2 className="font-extrabold">Protocol logs</h2>
           </div>
-
-          <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="max-h-[430px] space-y-3 overflow-y-auto pr-1">
             {pastDraws.length === 0 ? (
-              <p className="text-slate-500 font-bold opacity-30 text-center py-10">No logs found</p>
+              <p className="rounded-md bg-slate-50 p-8 text-center text-sm font-bold text-slate-400">No logs found</p>
             ) : (
               pastDraws.map((draw) => (
-                <div key={draw.id} className="bg-white/5 p-6 rounded-[2rem] border border-white/5 flex items-center justify-between group">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg font-black text-white">{new Date(draw.draw_month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
-                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-lg border ${draw.status === 'published' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-white/5 text-slate-400 border-white/10'}`}>
-                        {draw.status}
-                      </span>
-                    </div>
-                    <div className="flex gap-2">
-                      {draw.winning_numbers.map((n: number) => (
-                        <div key={n} className="w-10 h-10 rounded-xl bg-slate-900 border border-white/10 flex items-center justify-center text-xs font-bold text-emerald-400">
-                          {n}
-                        </div>
-                      ))}
-                    </div>
+                <div key={draw.id} className="rounded-md border border-slate-100 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-extrabold">{new Date(draw.draw_month).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</p>
+                    <span className={`rounded-full px-2 py-1 text-[10px] font-extrabold uppercase ${draw.status === 'published' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                      {draw.status}
+                    </span>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Algorithm</p>
-                    <p className="text-sm font-black text-emerald-500 uppercase tracking-tight">{draw.draw_type}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(draw.winning_numbers || []).map((number: number) => (
+                      <span key={number} className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-950 text-xs font-extrabold text-white">{number}</span>
+                    ))}
                   </div>
+                  <p className="mt-3 text-xs font-bold uppercase tracking-wide text-slate-400">{draw.draw_type}</p>
                 </div>
               ))
             )}
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
+
+      <PrizePoolsDisplay />
     </div>
   );
 };

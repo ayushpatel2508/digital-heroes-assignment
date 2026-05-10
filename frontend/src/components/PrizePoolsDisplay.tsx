@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, TrendingUp, Calendar } from 'lucide-react';
+import { Calendar, Trophy } from 'lucide-react';
 import apiClient from '../api/apiClient';
+import { supabase } from '../lib/supabase';
 
 interface PrizePool {
   id: string;
@@ -16,169 +17,152 @@ interface PrizePool {
 export const PrizePoolsDisplay = () => {
   const [prizePools, setPrizePools] = useState<PrizePool[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     fetchPrizePools();
+
+    const channel = supabase
+      .channel('prize_pools_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'prize_pools' },
+        () => {
+          console.log('🔄 Realtime update: Prize pools changed, fetching new data...');
+          fetchPrizePools();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchPrizePools = async () => {
     try {
       const response = await apiClient.get('/draws/prize-pools');
-      setPrizePools(response.data);
+      setPrizePools(response.data || []);
+      setLoadError(false);
     } catch (error) {
       console.error('Error fetching prize pools:', error);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const formatMonth = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-  };
+  const formatCurrency = (amount: number) =>
+    new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(amount || 0);
 
-  const getCurrentMonth = () => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-  };
+  const formatMonth = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 
-  const currentMonth = getCurrentMonth();
-  const currentPool = prizePools.find(p => p.draw_month === currentMonth);
-  const pastPools = prizePools.filter(p => p.draw_month !== currentMonth);
+  const currentDate = new Date();
+  const currentMonthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-01`;
+  
+  // Generate the rolling 12 months (Current month + 11 future months)
+  const rollingMonths = Array.from({ length: 12 }).map((_, i) => {
+    const d = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  });
+
+  // Map generated months to fetched data or default to 0
+  const displayPools = rollingMonths.map(monthKey => {
+    const found = prizePools.find(p => p.draw_month === monthKey);
+    return found || {
+      id: monthKey, // temporary ID
+      draw_month: monthKey,
+      total_pool: 0,
+      pool_5_match: 0,
+      pool_4_match: 0,
+      pool_3_match: 0,
+      rollover_from_previous: 0
+    };
+  });
+
+  const featuredPool = displayPools[0];
+  const upcomingPools = displayPools.slice(1);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="w-8 h-8 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin"></div>
+      <div className="flex justify-center rounded-none border border-slate-200 bg-white py-10">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-slate-950" />
       </div>
     );
   }
 
+  if (!featuredPool) {
+    return (
+      <section className="rounded-none border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-6 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-none bg-amber-50 text-amber-600">
+            <Trophy size={18} />
+          </div>
+          <div>
+            <h2 className="font-extrabold">Prize pool</h2>
+            <p className="text-xs text-slate-500">
+              {loadError ? 'Live prize pool data is unavailable.' : 'Prize pool totals will appear after the next draw is published.'}
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          {[
+            ['5-match jackpot', '40%', 'bg-amber-50 text-amber-700'],
+            ['4-match prize', '35%', 'bg-blue-50 text-blue-700'],
+            ['3-match prize', '25%', 'bg-rose-50 text-rose-700'],
+          ].map(([label, value, classes]) => (
+            <div key={label} className={`rounded-none p-4 ${classes}`}>
+              <p className="text-2xl font-extrabold">{value}</p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-wide">{label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
   return (
-    <div className="space-y-8">
-      {/* Current Month - Featured */}
-      {currentPool && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-[2.5rem] p-8 relative overflow-hidden"
-        >
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-[80px]" />
-          
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-              <span className="text-[10px] font-black text-white/80 uppercase tracking-widest">Current Month</span>
-            </div>
-            
-            <h2 className="text-3xl font-black text-white mb-6 heading-fancy flex items-center gap-3">
-              <Trophy size={32} />
-              {formatMonth(currentPool.draw_month)}
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
-                <p className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-2">Total Pool</p>
-                <p className="text-3xl font-black text-white">£{currentPool.total_pool.toLocaleString()}</p>
-              </div>
-              
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
-                <p className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-2">5-Match Prize</p>
-                <p className="text-2xl font-black text-amber-300">£{currentPool.pool_5_match.toLocaleString()}</p>
-                <p className="text-[9px] text-white/50 mt-1">40% of pool</p>
-              </div>
-              
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
-                <p className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-2">4-Match Prize</p>
-                <p className="text-2xl font-black text-blue-300">£{currentPool.pool_4_match.toLocaleString()}</p>
-                <p className="text-[9px] text-white/50 mt-1">35% of pool</p>
-              </div>
-              
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
-                <p className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-2">3-Match Prize</p>
-                <p className="text-2xl font-black text-rose-300">£{currentPool.pool_3_match.toLocaleString()}</p>
-                <p className="text-[9px] text-white/50 mt-1">25% of pool</p>
-              </div>
-            </div>
-
-            {currentPool.rollover_from_previous > 0 && (
-              <div className="mt-4 flex items-center gap-2 text-amber-300">
-                <TrendingUp size={16} />
-                <span className="text-sm font-bold">
-                  Includes £{currentPool.rollover_from_previous.toLocaleString()} rollover from previous month
-                </span>
-              </div>
-            )}
+    <section className="space-y-5">
+      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="rounded-none bg-[#172449] p-6 text-white shadow-sm">
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wide text-amber-300">Prize pool</p>
+            <h2 className="mt-1 text-2xl font-extrabold">{formatMonth(featuredPool.draw_month)}</h2>
           </div>
-        </motion.div>
-      )}
+          <Trophy size={30} className="text-amber-300" />
+        </div>
+        <div className="grid gap-3 md:grid-cols-4">
+          <PoolTile label="Total Pool" value={formatCurrency(featuredPool.total_pool)} />
+          <PoolTile label="5-Match" value={formatCurrency(featuredPool.pool_5_match)} accent="text-amber-300" />
+          <PoolTile label="4-Match" value={formatCurrency(featuredPool.pool_4_match)} accent="text-blue-200" />
+          <PoolTile label="3-Match" value={formatCurrency(featuredPool.pool_3_match)} accent="text-rose-200" />
+        </div>
+      </motion.div>
 
-      {/* Past Months */}
-      {pastPools.length > 0 && (
-        <div>
-          <div className="flex items-center gap-3 mb-6">
-            <Calendar size={20} className="text-slate-400" />
-            <h3 className="text-xl font-black text-white">Previous Months</h3>
+      {upcomingPools.length > 0 && (
+        <div className="rounded-none border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <Calendar size={17} className="text-slate-400" />
+            <h3 className="font-extrabold">Upcoming prize pools</h3>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {pastPools.map((pool, i) => (
-              <motion.div
-                key={pool.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-lg font-black text-white">{formatMonth(pool.draw_month)}</h4>
-                  <Trophy size={18} className="text-slate-500" />
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-slate-400 font-medium">Total Pool</span>
-                    <span className="text-lg font-black text-white">£{pool.total_pool.toLocaleString()}</span>
-                  </div>
-                  
-                  <div className="h-px bg-white/10" />
-                  
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] text-slate-500 font-bold uppercase">5-Match</span>
-                      <span className="text-sm font-bold text-amber-400">£{pool.pool_5_match.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] text-slate-500 font-bold uppercase">4-Match</span>
-                      <span className="text-sm font-bold text-blue-400">£{pool.pool_4_match.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] text-slate-500 font-bold uppercase">3-Match</span>
-                      <span className="text-sm font-bold text-rose-400">£{pool.pool_3_match.toLocaleString()}</span>
-                    </div>
-                  </div>
-
-                  {pool.rollover_from_previous > 0 && (
-                    <div className="pt-2 border-t border-white/10">
-                      <div className="flex items-center gap-1 text-amber-400">
-                        <TrendingUp size={12} />
-                        <span className="text-[10px] font-bold">+£{pool.rollover_from_previous.toLocaleString()} rollover</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
+          <div className="grid gap-3 md:grid-cols-3">
+            {upcomingPools.map((pool) => (
+              <div key={pool.id} className="rounded-none border border-slate-100 p-4">
+                <p className="font-extrabold">{formatMonth(pool.draw_month)}</p>
+                <p className="mt-1 text-sm font-bold text-slate-500">{formatCurrency(pool.total_pool)}</p>
+              </div>
             ))}
           </div>
         </div>
       )}
-
-      {prizePools.length === 0 && !loading && (
-        <div className="text-center py-12">
-          <Trophy size={48} className="text-slate-700 mx-auto mb-4" />
-          <p className="text-slate-500 font-bold">No prize pools available yet</p>
-        </div>
-      )}
-    </div>
+    </section>
   );
 };
+
+const PoolTile = ({ label, value, accent = 'text-white' }: { label: string; value: string; accent?: string }) => (
+  <div className="rounded-none bg-white/10 p-4">
+    <p className={`text-xl font-extrabold ${accent}`}>{value}</p>
+    <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-white/60">{label}</p>
+  </div>
+);

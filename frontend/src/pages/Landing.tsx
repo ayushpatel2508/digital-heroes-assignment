@@ -1,432 +1,285 @@
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
-import { Trophy, Heart, Target, ArrowRight, Zap, Users, ShieldCheck, Star, Globe, ChevronDown } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
+import { Link, Navigate } from 'react-router-dom';
+import {
+  ArrowRight,
+  BarChart3,
+  CalendarCheck,
+  CheckCircle2,
+  Heart,
+  Medal,
+  ShieldCheck,
+  Trophy,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-
-const charities = [
-  { name: 'Greenpeace', cause: 'Environment', color: 'from-green-500 to-emerald-600' },
-  { name: 'UNICEF', cause: 'Children', color: 'from-blue-500 to-cyan-600' },
-  { name: 'Red Cross', cause: 'Humanitarian', color: 'from-red-500 to-rose-600' },
-  { name: 'WWF', cause: 'Wildlife', color: 'from-orange-500 to-amber-600' },
-];
+import apiClient from '../api/apiClient';
+import heroImage from '../assets/hero.png';
 
 const Landing = () => {
   const { user, isAdmin, loading } = useAuth();
-  const navigate = useNavigate();
-  const heroRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
-  const heroY = useTransform(scrollYProgress, [0, 1], ['0%', '30%']);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
+  const [stats, setStats] = useState({
+    raised: 0,
+    charities: 0,
+    prizePool: 0,
+    draws: 0,
+  });
 
   useEffect(() => {
-    if (!loading && user) {
-      navigate(isAdmin ? '/admin/dashboard' : '/dashboard');
+    fetchLandingStats();
+  }, []);
+
+  const fetchLandingStats = async () => {
+    try {
+      const [charitiesRes, poolsRes, drawsRes] = await Promise.allSettled([
+        apiClient.get('/charities'),
+        apiClient.get('/draws/prize-pools'),
+        apiClient.get('/draws/results'),
+      ]);
+
+      const charities = charitiesRes.status === 'fulfilled'
+        ? charitiesRes.value.data?.charities || charitiesRes.value.data || []
+        : [];
+      const pools = poolsRes.status === 'fulfilled' && Array.isArray(poolsRes.value.data) ? poolsRes.value.data : [];
+      const draws = drawsRes.status === 'fulfilled' && Array.isArray(drawsRes.value.data) ? drawsRes.value.data : [];
+      const raised = pools.reduce((sum: number, pool: { total_pool?: number | string }) => sum + Number(pool.total_pool || 0), 0);
+
+      setStats({
+        raised,
+        charities: Array.isArray(charities) ? charities.length : 0,
+        prizePool: Number(pools[0]?.total_pool || 0),
+        draws: draws.length,
+      });
+    } catch (error) {
+      console.error('Failed to fetch landing stats:', error);
     }
-  }, [user, isAdmin, loading, navigate]);
+  };
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+      notation: value >= 10000 ? 'compact' : 'standard',
+      maximumFractionDigits: value >= 10000 ? 1 : 0,
+    }).format(value || 0);
+
+  if (!loading && user) {
+    return <Navigate to={isAdmin ? '/admin/dashboard' : '/dashboard'} replace />;
+  }
 
   return (
-    <div className="min-h-screen bg-[#060810] text-white overflow-x-hidden">
-      {/* ── Navbar ── */}
-      <nav className="fixed top-0 inset-x-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-3"
-          >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/40">
-              <span className="text-white font-black text-lg">⛳</span>
-            </div>
-            <span className="font-black text-lg tracking-tight">Digital<span className="text-emerald-400">Heroes</span></span>
-          </motion.div>
+    <div className="min-h-screen bg-[#fafafa] text-slate-950">
+      <Header />
 
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="hidden md:flex items-center gap-8"
-          >
-            <a href="#how-it-works" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">How It Works</a>
-            <a href="#impact" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Our Impact</a>
-            <a href="#draws" className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">Monthly Draw</a>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="flex items-center gap-3"
-          >
-            <Link to="/login" className="text-sm font-bold text-slate-400 hover:text-white transition-colors px-4 py-2">
-              Login
-            </Link>
-            <Link
-              to="/register"
-              className="text-sm font-black bg-emerald-500 hover:bg-emerald-400 text-white px-5 py-2.5 rounded-xl transition-all hover:shadow-lg hover:shadow-emerald-500/30 active:scale-95"
-            >
-              Get Started
-            </Link>
-          </motion.div>
-        </div>
-      </nav>
-
-      {/* ── HERO ── */}
-      <section ref={heroRef} className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Background layers */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#060810] via-[#080d16] to-[#060810]" />
-        <div className="absolute inset-0">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-emerald-500/[0.06] rounded-full blur-[120px]" />
-          <div className="absolute top-1/3 left-1/4 w-[400px] h-[400px] bg-blue-500/[0.04] rounded-full blur-[100px]" />
-          <div className="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] bg-amber-500/[0.04] rounded-full blur-[80px]" />
-        </div>
-        {/* Grid lines */}
-        <div
-          className="absolute inset-0 opacity-[0.03]"
-          style={{
-            backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-            backgroundSize: '80px 80px'
-          }}
-        />
-
-        <motion.div
-          style={{ y: heroY, opacity: heroOpacity }}
-          className="relative z-10 text-center px-6 max-w-6xl mx-auto pt-24"
-        >
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 border border-emerald-500/30 bg-emerald-500/[0.07] px-4 py-2 rounded-full text-xs font-black text-emerald-400 uppercase tracking-[0.2em] mb-10"
-          >
-            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-            Golf · Charity · Monthly Prizes
-          </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15 }}
-            className="text-6xl md:text-8xl lg:text-[100px] font-black leading-[0.88] tracking-tighter mb-8"
-          >
-            <span className="text-white">Play with</span>
-            <br />
-            <span className="bg-gradient-to-r from-emerald-400 via-emerald-300 to-teal-400 bg-clip-text text-transparent">Purpose.</span>
-            <br />
-            <span className="text-white">Win for</span>
-            <br />
-            <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">Good.</span>
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="max-w-2xl mx-auto text-lg md:text-xl text-slate-400 leading-relaxed mb-12 font-medium"
-          >
-            The subscription platform where your golf scores enter you into monthly prize draws —
-            and a guaranteed slice goes to the charity you care about most.
-          </motion.p>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.45 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20"
-          >
-            <Link
-              to="/register"
-              id="hero-cta"
-              className="group flex items-center gap-3 bg-emerald-500 hover:bg-emerald-400 text-white font-black text-lg px-10 py-5 rounded-2xl transition-all hover:shadow-2xl hover:shadow-emerald-500/30 active:scale-95"
-            >
-              Start Your Journey
-              <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link
-              to="/charities-explorer"
-              className="flex items-center gap-2 text-slate-400 hover:text-white font-bold text-sm border border-white/10 hover:border-white/20 px-8 py-5 rounded-2xl transition-all hover:bg-white/[0.04]"
-            >
-              <Heart size={16} className="text-rose-400" />
-              Explore Charities
-            </Link>
-          </motion.div>
-
-          {/* Floating Stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto"
-          >
-            {[
-              { value: '4.2k+', label: 'Active Heroes', icon: Users },
-              { value: '£840k', label: 'Raised for Charity', icon: Heart },
-              { value: '£25k', label: 'Monthly Prize Pool', icon: Trophy },
-              { value: '100%', label: 'Verified Winners', icon: ShieldCheck },
-            ].map((stat) => (
-              <div
-                key={stat.label}
-                className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-5 text-center backdrop-blur-sm"
-              >
-                <p className="text-2xl md:text-3xl font-black text-white mb-1">{stat.value}</p>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{stat.label}</p>
-              </div>
-            ))}
-          </motion.div>
-        </motion.div>
-
-        {/* Scroll cue */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-30">
-          <ChevronDown size={20} className="animate-bounce" />
-        </div>
-      </section>
-
-      {/* ── HOW IT WORKS ── */}
-      <section id="how-it-works" className="py-32 px-6 relative">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-20">
-            <motion.span
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em] block mb-4"
-            >
-              Simple by Design
-            </motion.span>
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-4xl md:text-6xl font-black tracking-tighter leading-tight"
-            >
-              Three steps to <span className="text-emerald-400">impact</span>
-            </motion.h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              {
-                number: '01',
-                title: 'Subscribe & Choose',
-                desc: 'Pick monthly or annual. Select a charity you love — at least 10% of your fee goes directly to them. Optionally donate more.',
-                icon: Heart,
-                accent: 'rose',
-              },
-              {
-                number: '02',
-                title: 'Track Your Golf',
-                desc: 'Enter your last 5 Stableford scores (1–45). Our Rolling 5 system automatically keeps them updated. Simple, honest, transparent.',
-                icon: Target,
-                accent: 'emerald',
-              },
-              {
-                number: '03',
-                title: 'Win Monthly Draws',
-                desc: 'Match 3, 4, or 5 of the monthly draw numbers to share in the prize pool. Full 5-match jackpot rolls over until claimed.',
-                icon: Trophy,
-                accent: 'amber',
-              },
-            ].map((step, i) => (
-              <motion.div
-                key={step.number}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.12 }}
-                className="group relative bg-white/[0.03] border border-white/[0.07] rounded-3xl p-8 hover:bg-white/[0.05] hover:border-white/[0.12] transition-all overflow-hidden"
-              >
-                <div className="absolute top-6 right-6 text-6xl font-black text-white/[0.03] leading-none select-none">
-                  {step.number}
-                </div>
-                <div className={`w-14 h-14 rounded-2xl mb-8 flex items-center justify-center ${
-                  step.accent === 'rose' ? 'bg-rose-500/10 text-rose-400' :
-                  step.accent === 'emerald' ? 'bg-emerald-500/10 text-emerald-400' :
-                  'bg-amber-500/10 text-amber-400'
-                } group-hover:scale-110 transition-transform`}>
-                  <step.icon size={28} />
-                </div>
-                <h3 className="text-xl font-black mb-3 text-white">{step.title}</h3>
-                <p className="text-slate-400 leading-relaxed font-medium">{step.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CHARITY IMPACT ── */}
-      <section id="impact" className="py-32 px-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-emerald-950/20 to-transparent pointer-events-none" />
-        <div className="max-w-7xl mx-auto relative">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
-              <span className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em] block mb-4">Charitable Impact</span>
-              <h2 className="text-4xl md:text-5xl font-black tracking-tighter leading-tight mb-6">
-                Every swing<br />makes a <span className="text-emerald-400">difference</span>
-              </h2>
-              <p className="text-slate-400 text-lg leading-relaxed mb-8 font-medium">
-                When you join, you select a charity from our verified directory. A portion of every 
-                subscription goes directly to your chosen cause — no middle-men, fully transparent.
+      <main>
+        <section className="border-b border-slate-200 bg-white">
+          <div className="mx-auto grid min-h-[calc(100vh-56px)] max-w-6xl gap-10 px-4 py-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+            <div className="max-w-xl">
+              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-amber-500">Golf scores with a purpose</p>
+              <h1 className="mt-4 text-4xl font-extrabold leading-[1.05] sm:text-5xl">
+                Play your round, support a cause, stay in the prize draw.
+              </h1>
+              <p className="mt-5 text-base leading-7 text-slate-600">
+                Play for Dreams turns a member's rolling five golf scores into a simple dashboard for charity support,
+                prize pool tracking, and verified monthly winners.
               </p>
 
-              <div className="space-y-4 mb-10">
-                {[
-                  { label: 'Minimum charity contribution', value: '10%' },
-                  { label: 'Optional increase available', value: 'Up to 100%' },
-                  { label: 'Independent donations', value: 'Always on' },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between p-4 bg-white/[0.03] border border-white/[0.06] rounded-2xl">
-                    <span className="text-slate-400 font-medium text-sm">{item.label}</span>
-                    <span className="font-black text-emerald-400 text-sm">{item.value}</span>
-                  </div>
-                ))}
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <Link to="/register" className="inline-flex items-center justify-center gap-2 rounded-md bg-[#172449] px-5 py-3 text-sm font-extrabold text-white">
+                  Create account <ArrowRight size={16} />
+                </Link>
+                <Link to="/charities-explorer" className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-5 py-3 text-sm font-extrabold text-slate-700">
+                  Browse charities
+                </Link>
               </div>
 
-              <Link to="/charities-explorer" className="inline-flex items-center gap-2 text-emerald-400 font-black hover:text-white transition-colors group">
-                Explore All Charities
-                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </motion.div>
+              <div className="mt-8 grid max-w-lg grid-cols-3 gap-3">
+                <HeroStat value={formatCurrency(stats.prizePool)} label="latest pool" />
+                <HeroStat value={`${stats.charities}`} label="charities" />
+                <HeroStat value={`${stats.draws}`} label="draws logged" />
+              </div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              className="grid grid-cols-2 gap-4"
-            >
-              {charities.map((c, i) => (
-                <motion.div
-                  key={c.name}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.08 }}
-                  whileHover={{ y: -4 }}
-                  className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-6 group cursor-default"
-                >
-                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${c.color} mb-4 flex items-center justify-center shadow-lg`}>
-                    <Globe size={18} className="text-white" />
-                  </div>
-                  <p className="font-black text-white">{c.name}</p>
-                  <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">{c.cause}</p>
-                </motion.div>
-              ))}
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── PRIZE POOLS ── */}
-      <section id="draws" className="py-32 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-20">
-            <motion.span
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              className="text-[10px] font-black text-amber-400 uppercase tracking-[0.3em] block mb-4"
-            >
-              Monthly Draw System
-            </motion.span>
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-4xl md:text-6xl font-black tracking-tighter"
-            >
-              How the <span className="text-amber-400">prize pool</span> works
-            </motion.h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { match: '5 Numbers', share: '40%', rollover: true, color: 'from-amber-500 to-orange-500', desc: 'The jackpot. Rolls over if unclaimed.' },
-              { match: '4 Numbers', share: '35%', rollover: false, color: 'from-emerald-500 to-teal-500', desc: 'Split equally among 4-match winners.' },
-              { match: '3 Numbers', share: '25%', rollover: false, color: 'from-blue-500 to-cyan-500', desc: 'Split equally among 3-match winners.' },
-            ].map((tier, i) => (
-              <motion.div
-                key={tier.match}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="relative overflow-hidden rounded-3xl bg-white/[0.03] border border-white/[0.08] p-8 group hover:bg-white/[0.05] transition-all"
-              >
-                <div className={`text-5xl font-black bg-gradient-to-r ${tier.color} bg-clip-text text-transparent mb-2`}>
-                  {tier.share}
+            <div className="relative overflow-hidden rounded-lg border border-slate-200 bg-slate-950 shadow-sm">
+              <img src={heroImage} alt="A young plant held in open hands" className="h-[460px] w-full object-cover opacity-90" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+                <div className="mb-4 inline-flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-xs font-bold backdrop-blur">
+                  <ShieldCheck size={14} className="text-emerald-300" />
+                  Verified draws and winner records
                 </div>
-                <p className="font-black text-white text-lg mb-1">{tier.match}</p>
-                <p className="text-slate-400 text-sm font-medium mb-6">{tier.desc}</p>
-                {tier.rollover && (
-                  <span className="inline-flex items-center gap-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-black uppercase px-3 py-1.5 rounded-lg tracking-wider">
-                    <Zap size={10} fill="currentColor" />
-                    Jackpot Rollover
-                  </span>
-                )}
-                <div className={`absolute bottom-0 right-0 w-40 h-40 bg-gradient-to-br ${tier.color} opacity-[0.04] blur-[60px] rounded-full group-hover:opacity-[0.08] transition-opacity`} />
-              </motion.div>
-            ))}
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <OverlayMetric value="5" label="scores tracked" />
+                  <OverlayMetric value="10%" label="minimum cause share" />
+                  <OverlayMetric value={formatCurrency(stats.raised)} label="tracked pool total" />
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── CTA ── */}
-      <section className="py-32 px-6">
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="max-w-5xl mx-auto bg-gradient-to-br from-emerald-950/60 via-[#0d1f1a] to-emerald-950/40 border border-emerald-500/20 rounded-[3rem] p-14 md:p-20 text-center relative overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(16,185,129,0.08)_0%,_transparent_70%)]" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-center gap-1 mb-8">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} size={16} className="text-amber-400" fill="currentColor" />
-              ))}
-              <span className="text-slate-400 text-sm font-bold ml-2">Trusted by 4,200+ heroes</span>
+        <section id="features" className="mx-auto max-w-6xl px-4 py-16">
+          <div className="grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-amber-500">Inside the app</p>
+              <h2 className="mt-3 text-3xl font-extrabold leading-tight">Built around the things members actually check.</h2>
+              <p className="mt-4 text-sm leading-6 text-slate-600">
+                The dashboard keeps the monthly loop visible: score progress, subscription status, selected charity,
+                and prize draw readiness.
+              </p>
             </div>
 
-            <h2 className="text-4xl md:text-6xl font-black tracking-tighter leading-tight mb-6">
-              Ready to be a<br /><span className="text-emerald-400">Digital Hero?</span>
-            </h2>
-            <p className="text-slate-400 text-lg max-w-xl mx-auto mb-10 font-medium leading-relaxed">
-              Your next round could fund a child's education, protect an ecosystem, or save a life. 
-              Subscribe today and play for something bigger.
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Feature icon={BarChart3} title="Rolling score view" text="Members add Stableford scores and see their current five-round entry progress." />
+              <Feature icon={Heart} title="Charity selection" text="Each account can choose the cause connected to future subscription contributions." />
+              <Feature icon={Trophy} title="Prize pool tracking" text="Current pools and draw results are surfaced without hiding them behind admin screens." />
+              <Feature icon={CalendarCheck} title="Monthly readiness" text="Subscription, score count, and winner status stay together so the next action is clear." />
+            </div>
+          </div>
+        </section>
+
+        <section id="how-it-works" className="border-y border-slate-200 bg-white py-16">
+          <div className="mx-auto max-w-6xl px-4">
+            <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-amber-500">How it works</p>
+                <h2 className="mt-3 text-3xl font-extrabold">A clean monthly rhythm.</h2>
+              </div>
+              <Link to="/register" className="inline-flex items-center gap-2 text-sm font-extrabold text-[#172449]">
+                Start with your first score <ArrowRight size={16} />
+              </Link>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <Step number="01" title="Pick your cause" text="Browse active charity partners and choose where your contribution should point." />
+              <Step number="02" title="Keep five scores current" text="Add your latest rounds so your draw entry reflects recent play." />
+              <Step number="03" title="Follow the draw" text="Watch prize pools, published results, and winner verification from one place." />
+            </div>
+          </div>
+        </section>
+
+        <section id="impact" className="mx-auto grid max-w-6xl gap-8 px-4 py-16 lg:grid-cols-[1fr_1fr] lg:items-center">
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <div className="border-b border-slate-200 bg-slate-50 px-5 py-4">
+              <p className="text-sm font-extrabold">Current platform snapshot</p>
+            </div>
+            <div className="divide-y divide-slate-100">
+              <Snapshot label="Latest prize pool" value={formatCurrency(stats.prizePool)} />
+              <Snapshot label="Charity partners" value={`${stats.charities}`} />
+              <Snapshot label="Published draws" value={`${stats.draws}`} />
+              <Snapshot label="Tracked pool total" value={formatCurrency(stats.raised)} />
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-amber-500">Transparency</p>
+            <h2 className="mt-3 text-3xl font-extrabold leading-tight">The numbers should be close enough to inspect.</h2>
+            <p className="mt-4 text-sm leading-6 text-slate-600">
+              Public charity browsing and visible pool data give visitors a useful look before sign-up. Members get the
+              full workflow once they create an account.
             </p>
-            <Link
-              to="/register"
-              id="final-cta"
-              className="inline-flex items-center gap-3 bg-emerald-500 hover:bg-emerald-400 text-white font-black text-xl px-14 py-5 rounded-2xl transition-all hover:shadow-2xl hover:shadow-emerald-500/30 active:scale-95 group"
-            >
-              Join the Mission
-              <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-        </motion.div>
-      </section>
-
-      {/* ── FOOTER ── */}
-      <footer className="border-t border-white/[0.06] py-12 px-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
-              <span className="text-base">⛳</span>
+            <div className="mt-6 space-y-3">
+              <CheckItem text="Public charity explorer for logged-out visitors" />
+              <CheckItem text="Member dashboard for scores, subscription, and cause selection" />
+              <CheckItem text="Admin portal for users, charities, draws, and winners" />
             </div>
-            <span className="font-black text-white">Digital<span className="text-emerald-400">Heroes</span></span>
           </div>
-          <p className="text-slate-500 text-sm font-medium">© 2026 Digital Heroes · Golf for Good</p>
-          <div className="flex gap-6 text-sm font-bold text-slate-500">
-            <Link to="/charities-explorer" className="hover:text-white transition-colors">Charities</Link>
-            <Link to="/register" className="hover:text-emerald-400 transition-colors">Subscribe</Link>
-            <Link to="/login" className="hover:text-white transition-colors">Login</Link>
+        </section>
+
+        <section className="bg-[#172449] py-14 text-white">
+          <div className="mx-auto flex max-w-6xl flex-col justify-between gap-6 px-4 md:flex-row md:items-center">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-amber-300">Ready when you are</p>
+              <h2 className="mt-3 text-3xl font-extrabold">Create your account and connect your first round.</h2>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link to="/register" className="inline-flex items-center justify-center rounded-md bg-amber-400 px-5 py-3 text-sm font-extrabold text-slate-950">
+                Get started
+              </Link>
+              <Link to="/login" className="inline-flex items-center justify-center rounded-md border border-white/20 px-5 py-3 text-sm font-extrabold text-white">
+                Sign in
+              </Link>
+            </div>
           </div>
-        </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-slate-200 bg-white py-8 text-center text-xs font-bold text-slate-400">
+        Play for Dreams (c) 2026
       </footer>
     </div>
   );
 };
+
+const Header = () => (
+  <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/90 backdrop-blur">
+    <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
+      <Link to="/" className="flex items-center gap-2">
+        <span className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-950 text-white">
+          <Medal size={15} />
+        </span>
+        <span className="text-sm font-extrabold">Play for Dreams</span>
+      </Link>
+      <nav className="hidden items-center gap-5 text-xs font-bold text-slate-500 md:flex">
+        <a href="#features" className="hover:text-slate-950">Features</a>
+        <a href="#how-it-works" className="hover:text-slate-950">How it works</a>
+        <a href="#impact" className="hover:text-slate-950">Impact</a>
+        <Link to="/charities-explorer" className="hover:text-slate-950">Charities</Link>
+      </nav>
+      <div className="flex items-center gap-2">
+        <Link to="/login" className="rounded-md px-3 py-2 text-xs font-extrabold text-slate-500 hover:bg-slate-100 hover:text-slate-950">
+          Login
+        </Link>
+        <Link to="/register" className="rounded-md bg-slate-950 px-3 py-2 text-xs font-extrabold text-white">
+          Start
+        </Link>
+      </div>
+    </div>
+  </header>
+);
+
+const HeroStat = ({ value, label }: { value: string; label: string }) => (
+  <div className="rounded-lg border border-slate-200 bg-white p-4">
+    <p className="truncate text-lg font-extrabold">{value}</p>
+    <p className="mt-1 text-[10px] font-bold uppercase text-slate-400">{label}</p>
+  </div>
+);
+
+const OverlayMetric = ({ value, label }: { value: string; label: string }) => (
+  <div className="rounded-md bg-white/10 p-3 backdrop-blur">
+    <p className="text-xl font-extrabold">{value}</p>
+    <p className="mt-1 text-[10px] font-bold uppercase text-white/65">{label}</p>
+  </div>
+);
+
+const Feature = ({ icon: Icon, title, text }: { icon: typeof BarChart3; title: string; text: string }) => (
+  <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-md bg-slate-950 text-white">
+      <Icon size={18} />
+    </div>
+    <h3 className="font-extrabold">{title}</h3>
+    <p className="mt-2 text-sm leading-6 text-slate-500">{text}</p>
+  </div>
+);
+
+const Step = ({ number, title, text }: { number: string; title: string; text: string }) => (
+  <div className="rounded-lg border border-slate-200 p-5">
+    <p className="text-xs font-extrabold text-amber-500">{number}</p>
+    <h3 className="mt-3 font-extrabold">{title}</h3>
+    <p className="mt-2 text-sm leading-6 text-slate-500">{text}</p>
+  </div>
+);
+
+const Snapshot = ({ label, value }: { label: string; value: string }) => (
+  <div className="flex items-center justify-between gap-4 px-5 py-4">
+    <span className="text-sm font-bold text-slate-500">{label}</span>
+    <span className="text-lg font-extrabold text-slate-950">{value}</span>
+  </div>
+);
+
+const CheckItem = ({ text }: { text: string }) => (
+  <div className="flex items-start gap-3 rounded-md border border-slate-200 bg-white p-3 text-sm font-bold text-slate-700">
+    <CheckCircle2 size={17} className="mt-0.5 shrink-0 text-emerald-500" />
+    <span>{text}</span>
+  </div>
+);
 
 export default Landing;

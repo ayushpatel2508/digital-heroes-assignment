@@ -13,7 +13,8 @@ import {
   Bell,
   Search,
   Menu,
-  X
+  X,
+  Trophy
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -37,7 +38,6 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/login');
   };
 
   const userNavItems: SidebarItem[] = [
@@ -87,7 +87,7 @@ const MainLayout = ({ children }: { children: React.ReactNode }) => {
                 whileHover={{ rotate: 5, scale: 1.05 }}
                 className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20"
               >
-                <span className="text-white text-xl font-black">⛳</span>
+                <Trophy size={20} className="text-white" />
               </motion.div>
               <div>
                 <h2 className={`font-black text-xl tracking-tighter leading-none ${isAdminPath ? 'text-white' : 'text-slate-900'}`}>

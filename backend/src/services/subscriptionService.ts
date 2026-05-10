@@ -141,93 +141,55 @@ export const subscriptionService = {
 
     const affectedMonths: string[] = [];
 
-    // 2. For yearly subscriptions, divide into 12 monthly transactions
-    if (planType === 'yearly') {
-      console.log(`📅 Processing yearly subscription: dividing £${amount} into 12 monthly transactions`);
+    console.log(`📅 Processing subscription: dividing £${amount} into 12 monthly transactions`);
+    
+    const monthlyAmount = amount / 12;
+    const monthlyCharityAmount = monthlyAmount * (donationPercentage / 100);
+    const monthlyPrizePoolContribution = monthlyAmount - monthlyCharityAmount;
+
+    const transactions = [];
+    const startDate = new Date(billingPeriodStart);
+
+    // Create 12 monthly transactions
+    for (let i = 0; i < 12; i++) {
+      const monthStart = new Date(startDate);
+      monthStart.setMonth(startDate.getMonth() + i);
       
-      const monthlyAmount = amount / 12;
-      const monthlyCharityAmount = monthlyAmount * (donationPercentage / 100);
-      const monthlyPrizePoolContribution = monthlyAmount - monthlyCharityAmount;
+      const monthEnd = new Date(monthStart);
+      monthEnd.setMonth(monthStart.getMonth() + 1);
+      monthEnd.setDate(0); // Last day of the month
 
-      const transactions = [];
-      const startDate = new Date(billingPeriodStart);
-
-      // Create 12 monthly transactions
-      for (let i = 0; i < 12; i++) {
-        const monthStart = new Date(startDate);
-        monthStart.setMonth(startDate.getMonth() + i);
-        
-        const monthEnd = new Date(monthStart);
-        monthEnd.setMonth(monthStart.getMonth() + 1);
-        monthEnd.setDate(0); // Last day of the month
-
-        const monthStartIso = monthStart.toISOString();
-        const monthStartParts = monthStartIso.split('T');
-        const monthKey = (monthStartParts[0] || '').substring(0, 7) + '-01';
-        affectedMonths.push(monthKey);
-
-        const monthEndIso = monthEnd.toISOString();
-        const monthEndParts = monthEndIso.split('T');
-
-        transactions.push({
-          user_id: userId,
-          stripe_payment_intent_id: `${stripePaymentIntentId}_month_${i + 1}`,
-          amount: Math.round(monthlyAmount * 100) / 100,
-          charity_id: charityId,
-          charity_amount: Math.round(monthlyCharityAmount * 100) / 100,
-          prize_pool_contribution: Math.round(monthlyPrizePoolContribution * 100) / 100,
-          platform_fee: 0,
-          billing_period_start: monthStartParts[0] || '',
-          billing_period_end: monthEndParts[0] || '',
-        });
-      }
-
-      const { error: txErr } = await supabase
-        .from('payment_transactions')
-        .insert(transactions);
-
-      if (txErr) {
-        console.error('❌ Error recording yearly transactions:', txErr.message);
-        throw txErr;
-      }
-
-      console.log(`✅ Yearly subscription: 12 monthly transactions created (£${monthlyAmount.toFixed(2)} each, £${monthlyPrizePoolContribution.toFixed(2)} to pool per month)`);
-      
-    } else {
-      // 3. For monthly subscriptions, create single transaction
-      const charityAmount = amount * (donationPercentage / 100);
-      const platformFee = 0;
-      const prizePoolContribution = amount - charityAmount - platformFee;
-
-      const billingStartIso = billingPeriodStart.toISOString();
-      const billingStartParts = billingStartIso.split('T');
-      const monthKey = (billingStartParts[0] || '').substring(0, 7) + '-01';
+      const monthStartIso = monthStart.toISOString();
+      const monthStartParts = monthStartIso.split('T');
+      const monthKey = (monthStartParts[0] || '').substring(0, 7) + '-01';
       affectedMonths.push(monthKey);
 
-      const billingEndIso = billingPeriodEnd.toISOString();
-      const billingEndParts = billingEndIso.split('T');
+      const monthEndIso = monthEnd.toISOString();
+      const monthEndParts = monthEndIso.split('T');
 
-      const { error: txErr } = await supabase
-        .from('payment_transactions')
-        .insert({
-          user_id: userId,
-          stripe_payment_intent_id: stripePaymentIntentId,
-          amount: amount,
-          charity_id: charityId,
-          charity_amount: charityAmount,
-          prize_pool_contribution: prizePoolContribution,
-          platform_fee: platformFee,
-          billing_period_start: billingStartParts[0] || '',
-          billing_period_end: billingEndParts[0] || '',
-        });
-
-      if (txErr) {
-        console.error('❌ Error recording payment transaction:', txErr.message);
-        throw txErr;
-      }
-
-      console.log(`✅ Monthly transaction recorded: £${amount} total (£${prizePoolContribution} to pool)`);
+      transactions.push({
+        user_id: userId,
+        stripe_payment_intent_id: `${stripePaymentIntentId}_month_${i + 1}`,
+        amount: Math.round(monthlyAmount * 100) / 100,
+        charity_id: charityId,
+        charity_amount: Math.round(monthlyCharityAmount * 100) / 100,
+        prize_pool_contribution: Math.round(monthlyPrizePoolContribution * 100) / 100,
+        platform_fee: 0,
+        billing_period_start: monthStartParts[0] || '',
+        billing_period_end: monthEndParts[0] || '',
+      });
     }
+
+    const { error: txErr } = await supabase
+      .from('payment_transactions')
+      .insert(transactions);
+
+    if (txErr) {
+      console.error('❌ Error recording transactions:', txErr.message);
+      throw txErr;
+    }
+
+    console.log(`✅ Subscription: 12 monthly transactions created (£${monthlyAmount.toFixed(2)} each, £${monthlyPrizePoolContribution.toFixed(2)} to pool per month)`);
 
     // 4. Update prize pools for affected months
     console.log(`💰 Updating prize pools for ${affectedMonths.length} month(s)...`);

@@ -1,181 +1,124 @@
-import React, { useState, useEffect } from 'react';
-import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  LayoutDashboard,
-  Heart,
-  CreditCard,
-  LogOut,
-  Menu,
-  X,
-  Trophy,
-  Medal,
-  ChevronRight
-} from 'lucide-react';
+import React, { useState } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { Heart, CreditCard, LogOut, Menu, Trophy, X, LayoutDashboard, Medal } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, desc: 'Your performance hub' },
-  { to: '/charities', label: 'Charities', icon: Heart, desc: 'Your giving impact' },
-  { to: '/subscription', label: 'Subscription', icon: CreditCard, desc: 'Plan & billing' },
-  { to: '/winners', label: 'My Winnings', icon: Trophy, desc: 'Verify & collect' },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/charities', label: 'Charities', icon: Heart },
+  { to: '/subscription', label: 'Subscription', icon: CreditCard },
+  { to: '/winners', label: 'Winnings', icon: Trophy },
 ];
 
 const UserLayout = ({ children }: { children: React.ReactNode }) => {
   const { user, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
-
   const handleSignOut = async () => {
-    try {
-      await signOut();
-      // Force redirect to login page
-      navigate('/login', { replace: true });
-    } catch (error) {
-      console.error('Logout error:', error);
-      // Force redirect anyway
-      navigate('/login', { replace: true });
-    }
+    await signOut();
   };
 
-  const userInitial = user?.email?.[0]?.toUpperCase() || 'U';
-  const userName = user?.email?.split('@')[0] || 'Member';
-
   return (
-    <div className="min-h-screen bg-[#080c14] text-white flex">
-      {/* Mobile Overlay */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setMobileOpen(false)}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
-          />
-        )}
-      </AnimatePresence>
+    <div className="min-h-screen bg-[#fafafa] text-slate-900">
+      <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
+          <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-950 text-white">
+              <Medal size={15} />
+            </span>
+            <span className="text-sm font-extrabold tracking-tight">Play for Dreams</span>
+          </button>
 
-      {/* Sidebar */}
-      <aside className={`
-        fixed lg:sticky top-0 left-0 h-screen z-50 w-[280px] flex flex-col
-        bg-[#0d1117] border-r border-white/[0.06]
-        transition-transform duration-300 ease-in-out
-        ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        {/* Logo */}
-        <div className="p-6 pb-0">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-              <Medal size={18} className="text-white" fill="white" />
-            </div>
-            <div>
-              <span className="font-black text-base tracking-tight text-white">Digital<span className="text-emerald-400">Heroes</span></span>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest -mt-0.5">Golf Platform</p>
-            </div>
-          </div>
-
-          {/* User Profile Card */}
-          <div className="bg-white/[0.04] border border-white/[0.06] rounded-2xl p-4 mb-6 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 border border-emerald-500/30 flex items-center justify-center font-black text-emerald-400 text-sm flex-shrink-0">
-              {userInitial}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-black text-sm text-white truncate">{userName}</p>
-              <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">Active Member</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Nav */}
-        <nav className="flex-1 px-4 overflow-y-auto py-2">
-          <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] px-3 mb-3">Navigation</p>
-          <div className="space-y-1">
+          <nav className="hidden items-center gap-1 md:flex">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all group relative ${
-                    isActive
-                      ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
-                      : 'text-slate-500 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
+                  `rounded-md px-3 py-2 text-xs font-bold transition ${
+                    isActive ? 'bg-slate-950 text-white' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-950'
                   }`
                 }
               >
-                {({ isActive }) => (
-                  <>
-                    <item.icon size={18} className={`flex-shrink-0 transition-transform group-hover:scale-110 ${isActive ? 'text-emerald-400' : ''}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm">{item.label}</p>
-                      <p className="text-[10px] text-slate-600 group-hover:text-slate-500 transition-colors">{item.desc}</p>
-                    </div>
-                    {isActive && <ChevronRight size={14} className="text-emerald-400 flex-shrink-0" />}
-                  </>
-                )}
+                {item.label}
               </NavLink>
             ))}
-          </div>
-
-          {/* Admin switch */}
-          {isAdmin && (
-            <div className="mt-6 pt-6 border-t border-white/[0.06]">
-              <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] px-3 mb-3">Privileges</p>
+            {isAdmin && (
               <button
                 onClick={() => navigate('/admin/dashboard')}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.04] border border-transparent hover:border-white/[0.06] transition-all group"
+                className="rounded-md px-3 py-2 text-xs font-bold text-amber-700 hover:bg-amber-50"
               >
-                <div className="w-5 h-5 rounded-md bg-amber-500/20 flex items-center justify-center flex-shrink-0">
-                  <span className="text-amber-400 text-[10px] font-black">A</span>
-                </div>
-                <span className="font-bold text-sm">Admin Portal</span>
+                Admin
+              </button>
+            )}
+          </nav>
+
+          <div className="hidden items-center gap-2 md:flex">
+            <span className="max-w-28 truncate rounded-full border border-slate-200 px-3 py-1.5 text-[11px] font-bold text-slate-500">
+              {user?.email?.split('@')[0] || 'member'}
+            </span>
+            <button onClick={handleSignOut} className="rounded-md p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-500" title="Sign out">
+              <LogOut size={16} />
+            </button>
+          </div>
+
+          <button onClick={() => setMobileOpen(true)} className="rounded-md p-2 text-slate-600 md:hidden">
+            <Menu size={20} />
+          </button>
+        </div>
+
+        {mobileOpen && (
+          <div className="border-t border-slate-200 bg-white p-4 md:hidden">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-xs font-extrabold">Menu</span>
+              <button onClick={() => setMobileOpen(false)} className="rounded-md p-2 text-slate-500">
+                <X size={18} />
               </button>
             </div>
-          )}
-        </nav>
-
-        {/* Sign Out */}
-        <div className="p-4 border-t border-white/[0.06]">
-          <button
-            onClick={handleSignOut}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/[0.06] border border-transparent hover:border-rose-500/20 transition-all"
-          >
-            <LogOut size={16} />
-            <span className="font-bold text-sm">Sign Out</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen min-w-0">
-        {/* Mobile top bar */}
-        <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-[#0d1117]/90 backdrop-blur-md border-b border-white/[0.06]">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
-              <Medal size={14} className="text-white" />
+            <div className="grid gap-2">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setMobileOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 rounded-md px-3 py-3 text-sm font-bold ${
+                      isActive ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-600'
+                    }`
+                  }
+                >
+                  <item.icon size={16} />
+                  {item.label}
+                </NavLink>
+              ))}
             </div>
-            <span className="font-black text-sm">Digital<span className="text-emerald-400">Heroes</span></span>
+            <div className="mt-4 border-t border-slate-100 pt-4">
+              <button
+                onClick={handleSignOut}
+                className="flex w-full items-center justify-center gap-2 rounded-md bg-rose-50 px-3 py-3 text-sm font-bold text-rose-600 hover:bg-rose-100"
+              >
+                <LogOut size={16} />
+                Sign out
+              </button>
+            </div>
           </div>
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 text-slate-400 hover:text-white transition-colors">
-            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-        </div>
+        )}
+      </header>
 
-        {/* Page content */}
-        <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: 'easeOut' }}
-          >
-            {children}
-          </motion.div>
-        </main>
-      </div>
+      <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
+
+      <footer className="mt-10 border-t border-slate-200 bg-white">
+        <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 text-xs text-slate-500 sm:grid-cols-4">
+          <div>
+            <p className="font-extrabold text-slate-900">Play for Dreams</p>
+            <p className="mt-2 leading-relaxed">Golf scores, charity impact, and monthly prizes.</p>
+          </div>
+          <p>Contact Info<br />hello@playfordreams.co</p>
+          <p>Legal<br />Terms<br />Privacy Policy</p>
+          <p>Connect<br />Twitter<br />LinkedIn</p>
+        </div>
+      </footer>
     </div>
   );
 };

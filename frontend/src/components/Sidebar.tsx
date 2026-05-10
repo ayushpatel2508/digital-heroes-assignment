@@ -1,6 +1,6 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Heart, CreditCard, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Heart, CreditCard, LogOut, Menu, X, Trophy } from 'lucide-react';
 import { useState } from 'react';
 
 const navItems = [
@@ -11,12 +11,10 @@ const navItems = [
 
 const Sidebar = () => {
   const { user, signOut } = useAuth();
-  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/login');
   };
 
   return (
@@ -49,7 +47,7 @@ const Sidebar = () => {
         <div className="p-6 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200">
-              <span className="text-white text-xl font-black">⛳</span>
+              <Trophy size={20} className="text-white" />
             </div>
             <div>
               <h1 className="text-lg font-extrabold text-gray-900 tracking-tight">Charity Golf</h1>
