@@ -23,38 +23,40 @@ const UserLayout = ({ children }: { children: React.ReactNode }) => {
     <div className="min-h-screen bg-[#fafafa] text-slate-900">
       <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-950 text-white">
-              <Medal size={15} />
-            </span>
-            <span className="text-sm font-extrabold tracking-tight">Play for Dreams</span>
-          </button>
+          <div className="flex items-center gap-8">
+            <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-md bg-slate-950 text-white">
+                <Medal size={15} />
+              </span>
+              <span className="text-sm font-extrabold tracking-tight">Play for Dreams</span>
+            </button>
 
-          <nav className="hidden items-center gap-1 md:flex">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  `rounded-md px-3 py-2 text-xs font-bold transition ${
-                    isActive ? 'bg-slate-950 text-white' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-950'
-                  }`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
-            {isAdmin && (
-              <button
-                onClick={() => navigate('/admin/dashboard')}
-                className="rounded-md px-3 py-2 text-xs font-bold text-amber-700 hover:bg-amber-50"
-              >
-                Admin
-              </button>
-            )}
-          </nav>
+            <nav className="hidden items-center gap-1 md:flex">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) =>
+                    `rounded-md px-3 py-2 text-xs font-bold transition ${
+                      isActive ? 'bg-slate-950 text-white' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-950'
+                    }`
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+              {isAdmin && (
+                <button
+                  onClick={() => navigate('/admin/dashboard')}
+                  className="rounded-md px-3 py-2 text-xs font-bold text-amber-700 hover:bg-amber-50"
+                >
+                  Admin
+                </button>
+              )}
+            </nav>
+          </div>
 
-          <div className="hidden items-center gap-2 md:flex">
+          <div className="hidden items-center gap-2 md:flex ml-auto">
             <span className="max-w-28 truncate rounded-full border border-slate-200 px-3 py-1.5 text-[11px] font-bold text-slate-500">
               {user?.email?.split('@')[0] || 'member'}
             </span>
@@ -63,7 +65,7 @@ const UserLayout = ({ children }: { children: React.ReactNode }) => {
             </button>
           </div>
 
-          <button onClick={() => setMobileOpen(true)} className="rounded-md p-2 text-slate-600 md:hidden">
+          <button onClick={() => setMobileOpen(true)} className="rounded-md p-2 text-slate-600 md:hidden ml-auto">
             <Menu size={20} />
           </button>
         </div>

@@ -47,6 +47,12 @@ const Dashboard = () => {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
+    // Remove session_id from URL if returning from Stripe checkout
+    if (window.location.search.includes('session_id=')) {
+      window.history.replaceState({}, '', window.location.pathname);
+      setMessage({ type: 'success', text: '✅ Subscription processed successfully!' });
+    }
+
     if (user) fetchDashboardData();
   }, [user]);
 
